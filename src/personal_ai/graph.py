@@ -1,3 +1,4 @@
+from typing import Literal
 from personal_ai.state import AgentState
 from personal_ai.llm import generate_response
 from langgraph.graph import StateGraph, START, END
@@ -10,32 +11,30 @@ def generate_reply(state: AgentState) -> AgentState:
 	response = generate_response(state["user_request"])
 	return {**state, "response": response}
 	
-def understand_request(state: AgentState) -> AgentState:
+def route_request(state: AgentState) -> Literal["general", "calculation"]:
 	request = state["user_request"].lower()
 	
-	if "calculate" in request or "compute" in request:
+	if "calculate" in request or "compute" in request or "calculation" in request:
 		request_type = "calculation"
 	else:
 		request_type = "general"
 		
-	return {**state, "request_type": request_type}
+	print(f"\nRequest type: {request_type} routing...")
 	
-def route_request(state: AgentState) -> str:
-	print(f"\nRequest type: {state['request_type']} routing...")
-	return state["request_type"]
+	return request_type
 	
 def build_graph():
 	graph = StateGraph(AgentState)
 	
 	graph.add_node("receive_query", receive_query)
-	graph.add_node("understand_request", understand_request)
+	#graph.add_node("understand_request", understand_request)
 	graph.add_node("generate_reply", generate_reply)
 	
 	graph.add_edge(START, "receive_query")
 	#graph.add_edge("receive_query", "generate_reply")
-	graph.add_edge("receive_query", "understand_request")
+	#graph.add_edge("receive_query", "understand_request")
 	
-	graph.add_conditional_edges("understand_request", route_request, {"general": "generate_reply", "calculation": "generate_reply"})
+	graph.add_conditional_edges("receive_query", route_request, {"general": "generate_reply", "calculation": "generate_reply"})
 	
 	graph.add_edge("generate_reply", END)
 	
